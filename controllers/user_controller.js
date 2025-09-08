@@ -43,7 +43,7 @@ export const create_user = async (req, res) => {
     if (is_phone_exist)
       return res.status(400).send({
         status: false,
-        msg: "Phone Number already exist for another user",
+        msg: "Phone Number already registered",
       });
 
     if (!email)
@@ -51,7 +51,7 @@ export const create_user = async (req, res) => {
 
     if (
       !isNaN(email) ||
-      !"/^[A-Za-z]{1,10}[0-9._-]{0,4}@[a-z]{4,7}.[a-z]{2,3}$/".test(email)
+      !"/^[A-Za-z]{2,10}[0-9._-]{0,4}@[a-z]{4,7}.[a-z]{2,3}$/".test(email)
     )
       return res.status(400).send({ status: false, msg: "Invalid email" });
 
@@ -71,15 +71,16 @@ export const create_user = async (req, res) => {
         .status(400)
         .send({ status: false, msg: "Password is required" });
 
-    if (!isNaN(password))
-      return res.status(400).send({ status: false, msg: "Invalid Password" });
-
-    if (password.length < 8 || password.length > 15) {
+    if (
+      !isNaN(password) ||
+      !"/^(?=.*[0-9])(?=.*[-._@$&])[A-Z][a-z][a-z0-9-._@$&]{6,13}$/".test(
+        password
+      )
+    )
       return res.status(400).send({
         status: false,
-        msg: "Password must be between 8 and 15 characters long.",
+        msg: "Invalid Password, Password must be between 8 and 15 characters long, start with Uppercase, then at least one lowercase, then at least one number and atleast one special character like (- . _ @ $ &) ",
       });
-    }
 
     if (
       req.body.hasOwnProperty("address") &&

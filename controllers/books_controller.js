@@ -168,50 +168,122 @@ export const get_books_by_path = async (req, res) => {
   }
 };
 
-// export const update_book = async (req, res) => {
-//   try {
-//     let { title, excerpt, releasedAt, ISBN } = req.body;
-//     let { book_id } = req.params;
+export const update_book = async (req, res) => {
+  try {
+    let { book_id } = req.params;
+    let { title, excerpt, ISBN } = req.body;
 
-//     if (!Object.keys(req.body).length)
-//       return res
-//         .status(400)
-//         .send({ status: false, msg: "Request body can not be empty" });
+    if (!book_id)
+      return res
+        .status(400)
+        .send({ status: false, msg: "Book id is required" });
 
-//     if (!title)
-//       return res.status(400).send({ status: false, msg: "Title is required" });
+    if (!mongoose.Types.ObjectId.isValid(book_id))
+      return res.status(400).send({ status: false, msg: "Invalid Book id" });
 
-//     if (!isNaN(title))
-//       return res.status(400).send({ status: false, msg: "Invalid title" });
+    let is_book_id_exist = await Book.findOne({
+      _id: book_id,
+      is_deleted: false,
+    });
 
-//     let is_title_exist = await Book.findOne({
-//       title: title,
-//       is_deleted: false,
-//       _id: {$ne: book_id}
-//     });
+    if (!is_book_id_exist)
+      return res.status(404).send({ status: false, msg: "No data found" });
 
-//     if (is_title_exist)
-//       return res.status(400).send({
-//         status: false,
-//         msg: "Use a different title, it is already used",
-//       });
+    if (!Object.keys(req.body).length)
+      return res
+        .status(400)
+        .send({ status: false, msg: "Request body can not be empty" });
 
-//     if (!excerpt)
-//       return res
-//         .status(400)
-//         .send({ status: false, msg: "Excerpt is required" });
+    let update_book_details = {};
 
-//     if (!isNaN(excerpt))
-//       return res.status(400).send({ status: false, msg: "Invalid excerpt" });
+    if (title) {
+      if (!isNaN(title))
+        return res.status(400).send({ status: false, msg: "Invalid title" });
 
-//     if (!ISBN)
-//       return res.status(400).send({ status: false, msg: "ISBN is required" });
+      let is_title_exist = await Book.findOne({
+        title: title,
+        is_deleted: false,
+        _id: { $ne: book_id },
+      });
 
-//     if (!isNaN(ISBN))
-//       return res.status(400).send({ status: false, msg: "Invalid ISBN" });
+      if (is_title_exist)
+        return res.status(400).send({
+          status: false,
+          msg: "Use a different title, it is already used",
+        });
 
-//     let is_ISBN_exist = await Book.findOne({ ISBN: ISBN, is_deleted: false });
-//   } catch (err) {
-//     return res.status(500).send({ status: false, msg: err.message });
-//   }
-// };
+      update_book_details.title = title;
+    }
+    if (excerpt) {
+      if (!isNaN(excerpt))
+        return res.status(400).send({ status: false, msg: "Invalid excerpt" });
+
+      update_book_details.excerpt = excerpt;
+    }
+    if (ISBN) {
+      if (!isNaN(ISBN))
+        return res.status(400).send({ status: false, msg: "Invalid ISBN" });
+
+      let is_ISBN_exist = await Book.findOne({
+        ISBN: ISBN,
+        is_deleted: false,
+        _id: { $ne: book_id },
+      });
+
+      if (is_ISBN_exist)
+        return res
+          .status(400)
+          .send({ status: false, msg: "This ISBN is used for another book" });
+
+      update_book_details.ISBN = ISBN;
+    }
+
+    update_book_details.releasedAt = new Date();
+
+    let updated_book = await Book.findOneAndUpdate(
+      { _id: book_id },
+      { $set: update_book_details },
+      { new: true }
+    );
+
+    return res.status(200).send({
+      status: true,
+      msg: "Book updated successfully",
+      data: updated_book,
+    });
+  } catch (err) {
+    return res.status(500).send({ status: false, msg: err.message });
+  }
+};
+
+export const delete_book = async (req, res) => {
+  try {
+    let { book_id } = req.params;
+
+    if (!book_id)
+      return res
+        .status(400)
+        .send({ status: false, msg: "Book id is required" });
+
+    if (!mongoose.Types.ObjectId.isValid(book_id))
+      return res.status(400).send({ status: false, msg: "Invalid book id" });
+
+    let is_book_id_exist = await Book.findOneAndUpdate(
+      {
+        _id: book_id,
+        is_deleted: false,
+      },
+      { $set: { is_deleted: true, deletedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!is_book_id_exist)
+      return res.status(404).send({ status: false, msg: "No data found" });
+    else
+      return res
+        .status(200)
+        .send({ status: true, msg: "Book deleted successfully" });
+  } catch (err) {
+    return res.status(500).send({ status: false, msg: err.message });
+  }
+};
